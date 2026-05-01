@@ -1,0 +1,30 @@
+:root {
+  --bg: #f5f7fb;
+  --text: #101828;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+  background: linear-gradient(180deg, #f9fbff 0%, #eef3ff 100%);
+  color: var(--text);
+}
+
+.container {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 64px 20px;
+}
+
+h1 {
+  font-size: 2.2rem;
+  margin-bottom: 12px;
+}
+
+p {
+  font-size: 1.05rem;
+}
