@@ -1,11 +1,10 @@
 import mongoose, { Schema } from 'mongoose';
 
-const jobSchema = new Schema(
+const stepLogSchema = new Schema(
   {
     jobId: {
       type: String,
       required: true,
-      unique: true,
       index: true
     },
     pipelineId: {
@@ -13,17 +12,26 @@ const jobSchema = new Schema(
       required: true,
       index: true
     },
+    stepIndex: {
+      type: Number,
+      required: true
+    },
+    stepType: {
+      type: String,
+      enum: ['input', 'llm', 'output'],
+      required: true
+    },
     status: {
       type: String,
-      enum: ['pending', 'running', 'success', 'failed'],
-      default: 'pending',
+      enum: ['started', 'success', 'failed'],
+      required: true,
       index: true
     },
     input: {
       type: Schema.Types.Mixed,
-      required: true
+      default: null
     },
-    result: {
+    output: {
       type: Schema.Types.Mixed,
       default: null
     },
@@ -31,13 +39,13 @@ const jobSchema = new Schema(
       type: String,
       default: null
     },
-    attemptCount: {
+    durationMs: {
       type: Number,
       default: 0
     },
-    maxAttempts: {
+    attempt: {
       type: Number,
-      default: 3
+      default: 1
     }
   },
   {
@@ -46,4 +54,4 @@ const jobSchema = new Schema(
   }
 );
 
-export const JobModel = mongoose.model('Job', jobSchema);
+export const StepLogModel = mongoose.model('StepLog', stepLogSchema);

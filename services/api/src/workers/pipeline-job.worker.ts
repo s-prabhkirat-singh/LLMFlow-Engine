@@ -1,6 +1,8 @@
+import { env } from '../config/env.js';
 import { getPipelineByPipelineId } from '../repositories/pipeline.repository.js';
 import {
   getJobByJobId,
+  markJobPendingForRetry,
   markJobRunning,
   updateJobStatus
 } from '../repositories/job.repository.js';
@@ -30,13 +32,13 @@ const normalizeStepsForExecution = (
 
 export const processPipelineJob = async (
   message: QueueJobMessage
-): Promise<void> => {
+): Promise<{ shouldRetry: boolean }> => {
   const running = await markJobRunning(message.jobId);
 
   if (!running) {
     const existing = await getJobByJobId(message.jobId);
     if (existing?.status === 'success' || existing?.status === 'failed') {
-      return;
+      return { shouldRetry: false };
     }
 
     throw new Error(`Job '${message.jobId}' is not in pending state`);
@@ -50,6 +52,9 @@ export const processPipelineJob = async (
     }
 
     const result = await executePipeline({
+      jobId: message.jobId,
+      pipelineId: message.pipelineId,
+      attempt: running.attemptCount,
       steps: normalizeStepsForExecution(pipeline.steps),
       input: message.input
     });
@@ -59,9 +64,18 @@ export const processPipelineJob = async (
       result,
       error: null
     });
+
+    return { shouldRetry: false };
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Pipeline execution failed';
+
+    const hasRetriesLeft = running.attemptCount < running.maxAttempts;
+
+    if (hasRetriesLeft) {
+      await markJobPendingForRetry(message.jobId, errorMessage);
+      return { shouldRetry: true };
+    }
 
     await updateJobStatus(message.jobId, {
       status: 'failed',
@@ -69,6 +83,6 @@ export const processPipelineJob = async (
       result: null
     });
 
-    throw error;
+    return { shouldRetry: false };
   }
 };

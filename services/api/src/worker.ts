@@ -26,8 +26,13 @@ const startWorker = async (): Promise<void> => {
 
     try {
       const payload = parseMessage(message);
-      await processPipelineJob(payload);
-      channel.ack(message);
+      const processed = await processPipelineJob(payload);
+
+      if (processed.shouldRetry) {
+        channel.nack(message, false, true);
+      } else {
+        channel.ack(message);
+      }
     } catch (error) {
       channel.nack(message, false, false);
       // eslint-disable-next-line no-console

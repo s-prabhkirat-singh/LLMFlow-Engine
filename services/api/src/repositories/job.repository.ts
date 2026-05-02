@@ -4,6 +4,7 @@ export const createJob = async (job: {
   jobId: string;
   pipelineId: string;
   input: Record<string, unknown>;
+  maxAttempts: number;
 }) => {
   return JobModel.create(job);
 };
@@ -19,6 +20,22 @@ export const markJobRunning = async (jobId: string) => {
       $set: {
         status: 'running',
         error: null
+      },
+      $inc: {
+        attemptCount: 1
+      }
+    },
+    { new: true }
+  );
+};
+
+export const markJobPendingForRetry = async (jobId: string, error: string) => {
+  return JobModel.findOneAndUpdate(
+    { jobId, status: 'running' },
+    {
+      $set: {
+        status: 'pending',
+        error
       }
     },
     { new: true }

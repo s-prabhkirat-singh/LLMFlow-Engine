@@ -1,18 +1,35 @@
 # LLM Flow Engine
 
-Production-oriented starter for a pipeline orchestration system:
+LLM Flow Engine is an asynchronous workflow system for running JSON-defined LLM pipelines with production-oriented execution patterns.
 
-`Input -> Process (LLM) -> Output`
+## Core Capabilities
 
+- JSON pipeline definitions with step-based flow:
+  - `input`
+  - `llm`
+  - `output`
+- Async job execution using RabbitMQ
+- Dedicated worker process for pipeline execution
+- OpenAI integration with variable templating (`{{variable}}`)
+- Job lifecycle tracking:
+  - `pending`
+  - `running`
+  - `success`
+  - `failed`
+- Step-level execution logs (status, duration, attempt, error)
+- Basic retry with capped attempts
+- Next.js demo UI for:
+  - Create Pipeline (JSON)
+  - Trigger Pipeline
+  - View job logs and step timeline
 
-## Completed Milestones
+## Architecture
 
-- Day 1: API setup, Mongo models, create + trigger endpoints
-- Day 2: Local execution engine, context passing, input/output steps
-- Day 3: OpenAI integration, prompt templating (`{{variable}}`), real LLM execution
-- Day 4: RabbitMQ integration, async execution with dedicated worker
+```text
+Client -> API -> RabbitMQ -> Worker -> OpenAI -> MongoDB
+```
 
-## Monorepo Structure
+## Repository Structure
 
 ```text
 LLMFlowEngine/
@@ -23,50 +40,57 @@ LLMFlowEngine/
     web/
 ```
 
-## Day 4 Architecture
+## Prerequisites
 
-```text
-Client -> API -> RabbitMQ -> Worker -> OpenAI -> MongoDB
-```
+- Node.js 20+
+- Docker (recommended for local MongoDB + RabbitMQ)
 
-- API creates job in MongoDB with `pending` status and enqueues to RabbitMQ.
-- Worker consumes queue messages and executes pipeline steps.
-- Worker updates job status to `running`, then `success` or `failed`.
+## Local Infrastructure
 
-## Infrastructure Boot
+Start MongoDB and RabbitMQ:
 
 ```bash
 npm run infra:up
 ```
 
-- RabbitMQ management UI: `http://localhost:15672` (`guest/guest`)
+Stop infrastructure:
+
+```bash
+npm run infra:down
+```
+
+Default local endpoints:
+
+- RabbitMQ management UI: `http://localhost:15672` (`guest` / `guest`)
 - MongoDB: `mongodb://localhost:27017`
 
-## Backend Setup
-
-1. Install dependencies:
+## Installation
 
 ```bash
 npm install
 ```
 
-2. Configure env:
+## Environment Setup
 
 ```bash
 cp services/api/.env.example services/api/.env
 ```
 
-3. Set real OpenAI key in `services/api/.env`:
+Set required values in `services/api/.env`:
 
 ```env
-OPENAI_API_KEY=your_real_key
-OPENAI_MODEL=gpt-3
+NODE_ENV=development
+PORT=4000
+MONGODB_URI=mongodb://localhost:27017/llm_flow_engine
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-4o-mini
 RABBITMQ_URL=amqp://localhost:5672
 RABBITMQ_QUEUE_NAME=pipeline.jobs
 RABBITMQ_PREFETCH=10
+JOB_MAX_RETRIES=2
 ```
 
-## Start Services
+## Run Services
 
 Start API:
 
@@ -86,11 +110,11 @@ Start frontend:
 npm run dev:web
 ```
 
-## API Endpoints
+## API Reference
 
 Base URL: `http://localhost:4000/api/v1`
 
-### 1) Create Pipeline
+### Create Pipeline
 
 `POST /pipelines`
 
@@ -101,62 +125,37 @@ Base URL: `http://localhost:4000/api/v1`
   "description": "Summarize text input",
   "steps": [
     { "type": "input", "key": "text" },
-    { "type": "llm", "prompt": "Summarize this text in 2 bullet points:\n\n{{text}}", "model": "gpt-3" },
+    { "type": "llm", "prompt": "Summarize this in 2 bullet points:\n\n{{text}}", "model": "gpt-4o-mini" },
     { "type": "output", "key": "llm_output" }
   ]
 }
 ```
 
-### 2) Trigger Pipeline (enqueue only)
+### Trigger Pipeline
 
-`POST /pipelines/summary-flow/trigger`
+`POST /pipelines/:pipelineId/trigger`
 
 ```json
 {
   "input": {
-    "text": "OpenAI released a new API update and the team needs a concise summary for management by end of day."
+    "text": "OpenAI released a major update and leadership needs a concise summary today."
   }
 }
 ```
 
-Response is async acknowledgement (`202`), example:
+Returns `202 Accepted` with `jobId`.
 
-```json
-{
-  "jobId": "f8t8lw9um6j2a3n4",
-  "pipelineId": "summary-flow",
-  "status": "pending",
-  "createdAt": "2026-05-01T00:00:00.000Z"
-}
-```
-
-### 3) Get Job Status
+### Get Job Status and Logs
 
 `GET /pipelines/jobs/:jobId`
 
-Example response:
+Returns job status, retry metadata, output/error, and step logs.
 
-```json
-{
-  "jobId": "f8t8lw9um6j2a3n4",
-  "pipelineId": "summary-flow",
-  "status": "success",
-  "input": {
-    "text": "..."
-  },
-  "result": {
-    "llm_output": "- bullet 1\n- bullet 2"
-  },
-  "error": null,
-  "createdAt": "2026-05-01T00:00:00.000Z",
-  "updatedAt": "2026-05-01T00:00:02.000Z"
-}
-```
+## Reliability Notes
 
-## Queue Reliability Choices
-
-- Durable queue (`assertQueue` with `durable: true`)
-- Persistent messages (`sendToQueue` with `persistent: true`)
-- Manual acknowledgements (`ack` on success)
-- Dead-letter style behavior via `nack(requeue=false)` on hard failures
-- Worker prefetch control (`RABBITMQ_PREFETCH`) to prevent overload
+- Durable RabbitMQ queue
+- Persistent queue messages
+- Manual `ack/nack`
+- Prefetch-based worker flow control
+- Capped retries with final failure state
+- Step-level logging for observability and debugging

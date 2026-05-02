@@ -76,6 +76,10 @@ h1 {
   box-shadow: 0 14px 30px rgba(8, 47, 73, 0.08);
 }
 
+.logsPanel {
+  margin-top: 18px;
+}
+
 .panelHeader {
   display: flex;
   align-items: center;
@@ -86,6 +90,11 @@ h1 {
 h2 {
   margin: 0;
   font-size: 1.1rem;
+}
+
+h3 {
+  margin: 0;
+  font-size: 0.95rem;
 }
 
 label {
@@ -107,7 +116,7 @@ textarea {
 }
 
 textarea {
-  min-height: 300px;
+  min-height: 290px;
   resize: vertical;
 }
 
@@ -131,6 +140,89 @@ button:disabled {
   margin: 0 0 8px;
   color: #1d4ed8;
   font-size: 0.85rem;
+}
+
+.jobInspectorForm {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.inlineCheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 500;
+  color: #334155;
+}
+
+.inlineCheck input {
+  width: auto;
+}
+
+.jobStatusCards {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.statusCard {
+  border: 1px solid #cde0f7;
+  border-radius: 10px;
+  padding: 10px;
+  background: #f8fbff;
+}
+
+.statusCard span {
+  display: block;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.statusCard strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.95rem;
+}
+
+.timeline {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.timelineItem {
+  border: 1px solid #d6e2f2;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fbfdff;
+}
+
+.timelineItem.success {
+  border-color: #86efac;
+}
+
+.timelineItem.failed {
+  border-color: #fecdd3;
+}
+
+.timelineHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.timelineItem p {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: #334155;
+}
+
+.errorText {
+  color: #be123c;
 }
 
 pre {
@@ -158,5 +250,15 @@ pre {
 @media (min-width: 980px) {
   .grid {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .jobInspectorForm {
+    grid-template-columns: 1fr;
+  }
+
+  .jobStatusCards {
+    grid-template-columns: 1fr;
   }
 }

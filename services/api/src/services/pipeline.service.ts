@@ -1,9 +1,11 @@
 import { StatusCodes } from 'http-status-codes';
 import { customAlphabet } from 'nanoid';
 
+import { env } from '../config/env.js';
 import { ApiError } from '../errors/api-error.js';
 import { publishJobMessage } from '../queue/rabbitmq.js';
 import { createJob, getJobByJobId } from '../repositories/job.repository.js';
+import { getStepLogsByJobId } from '../repositories/step-log.repository.js';
 import {
   createPipeline,
   getPipelineByPipelineId
@@ -49,7 +51,8 @@ export const triggerPipelineService = async (
   const job = await createJob({
     jobId: generateJobId(),
     pipelineId,
-    input
+    input,
+    maxAttempts: env.JOB_MAX_RETRIES + 1
   });
 
   await publishJobMessage({
@@ -62,6 +65,8 @@ export const triggerPipelineService = async (
     jobId: job.jobId,
     pipelineId: job.pipelineId,
     status: job.status,
+    attemptCount: job.attemptCount,
+    maxAttempts: job.maxAttempts,
     createdAt: job.createdAt
   };
 };
@@ -73,13 +78,18 @@ export const getJobStatusService = async (jobId: string) => {
     throw new ApiError(StatusCodes.NOT_FOUND, `Job '${jobId}' not found`);
   }
 
+  const stepLogs = await getStepLogsByJobId(jobId);
+
   return {
     jobId: job.jobId,
     pipelineId: job.pipelineId,
     status: job.status,
+    attemptCount: job.attemptCount,
+    maxAttempts: job.maxAttempts,
     input: job.input,
     result: job.result,
     error: job.error,
+    stepLogs,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt
   };
