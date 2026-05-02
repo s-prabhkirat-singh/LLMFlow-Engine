@@ -8,6 +8,23 @@ export const createJob = async (job: {
   return JobModel.create(job);
 };
 
+export const getJobByJobId = async (jobId: string) => {
+  return JobModel.findOne({ jobId }).lean();
+};
+
+export const markJobRunning = async (jobId: string) => {
+  return JobModel.findOneAndUpdate(
+    { jobId, status: 'pending' },
+    {
+      $set: {
+        status: 'running',
+        error: null
+      }
+    },
+    { new: true }
+  );
+};
+
 export const updateJobStatus = async (
   jobId: string,
   payload: {

@@ -4,6 +4,7 @@ import { StatusCodes } from 'http-status-codes';
 import { ApiError } from '../errors/api-error.js';
 import {
   createPipelineService,
+  getJobStatusService,
   triggerPipelineService
 } from '../services/pipeline.service.js';
 import {
@@ -41,4 +42,18 @@ export const triggerPipelineController = async (
   const job = await triggerPipelineService(pipelineId, parsed.input);
 
   res.status(StatusCodes.ACCEPTED).json(job);
+};
+
+export const getJobStatusController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { jobId } = req.params;
+  if (!jobId) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'jobId is required');
+  }
+
+  const job = await getJobStatusService(jobId);
+
+  res.status(StatusCodes.OK).json(job);
 };

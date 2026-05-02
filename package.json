@@ -12,7 +12,10 @@
     "dev:web": "npm --workspace services/web run dev",
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces",
-    "format": "npm run format --workspaces"
+    "format": "npm run format --workspaces",
+    "dev:worker": "npm --workspace services/api run dev:worker",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down"
   },
   "engines": {
     "node": ">=20.0.0"

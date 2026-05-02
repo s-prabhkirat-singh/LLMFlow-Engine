@@ -2,13 +2,13 @@ import { StatusCodes } from 'http-status-codes';
 import { customAlphabet } from 'nanoid';
 
 import { ApiError } from '../errors/api-error.js';
-import { createJob, updateJobStatus } from '../repositories/job.repository.js';
+import { publishJobMessage } from '../queue/rabbitmq.js';
+import { createJob, getJobByJobId } from '../repositories/job.repository.js';
 import {
   createPipeline,
   getPipelineByPipelineId
 } from '../repositories/pipeline.repository.js';
 import { type CreatePipelineInput } from '../validators/pipeline.validator.js';
-import { executePipeline } from './pipeline-engine.service.js';
 
 const generateJobId = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 16);
 
@@ -20,22 +20,6 @@ const validatePipelineStepFlow = (steps: CreatePipelineInput['steps']): void => 
   if (steps[steps.length - 1]?.type !== 'output') {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Last step must be output');
   }
-};
-
-const normalizeStepsForExecution = (
-  steps: Array<{
-    type: 'input' | 'llm' | 'output';
-    key?: string | null;
-    prompt?: string | null;
-    model?: string | null;
-  }>
-) => {
-  return steps.map((step) => ({
-    type: step.type,
-    key: step.key ?? undefined,
-    prompt: step.prompt ?? undefined,
-    model: step.model ?? undefined
-  }));
 };
 
 export const createPipelineService = async (payload: CreatePipelineInput) => {
@@ -68,34 +52,35 @@ export const triggerPipelineService = async (
     input
   });
 
-  await updateJobStatus(job.jobId, { status: 'running' });
+  await publishJobMessage({
+    jobId: job.jobId,
+    pipelineId,
+    input
+  });
 
-  try {
-    const result = await executePipeline({
-      steps: normalizeStepsForExecution(pipeline.steps),
-      input
-    });
+  return {
+    jobId: job.jobId,
+    pipelineId: job.pipelineId,
+    status: job.status,
+    createdAt: job.createdAt
+  };
+};
 
-    const completed = await updateJobStatus(job.jobId, {
-      status: 'success',
-      result
-    });
+export const getJobStatusService = async (jobId: string) => {
+  const job = await getJobByJobId(jobId);
 
-    return {
-      jobId: job.jobId,
-      pipelineId: job.pipelineId,
-      status: completed?.status ?? 'success',
-      result,
-      createdAt: job.createdAt
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Pipeline execution failed';
-
-    await updateJobStatus(job.jobId, {
-      status: 'failed',
-      error: message
-    });
-
-    throw error;
+  if (!job) {
+    throw new ApiError(StatusCodes.NOT_FOUND, `Job '${jobId}' not found`);
   }
+
+  return {
+    jobId: job.jobId,
+    pipelineId: job.pipelineId,
+    status: job.status,
+    input: job.input,
+    result: job.result,
+    error: job.error,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt
+  };
 };
