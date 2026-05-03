@@ -14,7 +14,7 @@ LLM Flow Engine is an asynchronous workflow system for running JSON-defined LLM 
 - Job lifecycle tracking:
   - `pending`
   - `running`
-  - `success`
+  - `success`env
   - `failed`
 - Step-level execution logs (status, duration, attempt, error)
 - Basic retry with capped attempts
