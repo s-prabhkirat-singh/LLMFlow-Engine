@@ -63,7 +63,7 @@ const defaultTriggerJson = JSON.stringify(
 const prettify = (value: unknown) => JSON.stringify(value, null, 2);
 
 export default function HomePage() {
-  const [apiBaseUrl, setApiBaseUrl] = useState(process.env.REACT_APP_API_URL || 'http://localhost:4000/api/v1');
+  const [apiBaseUrl, setApiBaseUrl] = useState(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1');
   const [pipelineJson, setPipelineJson] = useState(defaultPipelineJson);
   const [triggerJson, setTriggerJson] = useState(defaultTriggerJson);
   const [jobId, setJobId] = useState('');
@@ -202,7 +202,7 @@ export default function HomePage() {
           id="apiBaseUrl"
           value={apiBaseUrl}
           onChange={(event) => setApiBaseUrl(event.target.value)}
-          placeholder={`${process.env.REACT_APP_API_URL || 'http://localhost:4000/api/v1'}`}
+          placeholder={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'}`}
         />
       </section>
 
